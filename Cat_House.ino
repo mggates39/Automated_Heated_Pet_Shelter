@@ -13,15 +13,19 @@ products from Adafruit!
 #include <Adafruit_MCP9808.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <HX711.h>
 #include "MyDelay.h"
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels
+
+#define LOADCELL_DOUT_PIN 2
+#define LOADCELL_SCK_PIN 3
 #define RELAY_PIN 8
+
 #define DEFAULT_READ_TEMP_TIMER 60000
 #define DEFAULT_RECYCLE_DELAY 900000
 #define DEFAULT_HEAT_TIME 2700000
-
 
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 #define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
@@ -30,6 +34,10 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 // Create the MCP9808 temperature sensor object
 Adafruit_MCP9808 inside_sensor = Adafruit_MCP9808();
 Adafruit_MCP9808 outside_sensor = Adafruit_MCP9808();
+
+
+HX711 scale = HX711();
+
 
 long read_temp_delay = DEFAULT_READ_TEMP_TIMER;
 long recycle_delay = DEFAULT_RECYCLE_DELAY;
@@ -59,6 +67,10 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(RELAY_PIN, OUTPUT);
   digitalWrite(RELAY_PIN, LOW);
+
+  scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
+  scale.set_scale(2280.f);
+  scale.tare();
 
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3C for 128x32
@@ -141,18 +153,25 @@ void highlight_status(bool flag, char *tag) {
 }
 
 void read_load_cell() {
-  /*
-   * Read cell
-   * if cell shows weight
-   *  if not occupied
-   *    set occupied
-   *    reduce temp timer to default
-   * else
-   *  if occupide
-   *    clear occupied
-   *    increast temp timer to 10 minutes
-   */
-  occupied = true;
+  scale.power_up();
+  float weight = scale.get_units(10);
+  
+  if (weight > 10.0) {
+    if (!occupied) {
+      occupied = true;
+      read_temp_delay = DEFAULT_READ_TEMP_TIMER;
+      read_temp_timer.setDelay(read_temp_delay);
+      read_temp_timer.start();
+    }
+  } else {
+    if (occupied) {
+      occupied = false;
+      read_temp_delay = 600000;
+      read_temp_timer.setDelay(read_temp_delay);
+      read_temp_timer.start();
+    }
+  }
+  scale.power_down();
 }
 
 void read_temps() {
