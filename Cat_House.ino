@@ -115,7 +115,7 @@ void setup() {
 void turn_system_off() {
   system_on = false;
 
-  read_temp_delay = 60 * 60 * 1000;
+  read_temp_delay = 60L * 60L * 1000L;
   read_temp_timer.setDelay(read_temp_delay);
   read_temp_timer.start();
 
@@ -127,15 +127,15 @@ void turn_system_off() {
 void turn_system_on() {
   system_on = true;
 
-  read_temp_delay = 10 * 60 * 1000;
+  read_temp_delay = 10 * 60 * 1000L;
   read_temp_timer.setDelay(read_temp_delay);
   read_temp_timer.start();
 
   heat_on_timer.stop();
-  active_delay = 5 * 60 * 1000;
+  active_delay = 5 * 60 * 1000L;
   heat_on_timer.setDelay(active_delay);
   
-  recycle_delay = 55 * 60 * 1000;
+  recycle_delay = 55 * 60 * 1000L;
   heat_reset_timer.setDelay(recycle_delay);
   turn_off_heat();
   heat_reset_timer.stop();
@@ -215,9 +215,9 @@ void process_temperature() {
   if (inside_temp < 25.0) {
     if (!cold_in) {
       cold_in = true;
-      active_delay = 55 * 60 * 1000;
+      active_delay = 55 * 60 * 1000L;
       heat_on_timer.setDelay(active_delay);
-      recycle_delay = 5*60*1000;
+      recycle_delay = 5*60*1000L;
       heat_reset_timer.setDelay(recycle_delay);
     }
   } else {
@@ -234,9 +234,9 @@ void process_temperature() {
   if (outside_temp < 35.0) {
     if (!cold_out) {
       cold_out = true;
-      active_delay = 50 * 60 * 1000;
+      active_delay = 50 * 60 * 1000L;
       heat_on_timer.setDelay(active_delay);
-      recycle_delay = 10*60*1000;
+      recycle_delay = 10*60*1000L;
       heat_reset_timer.setDelay(recycle_delay);
     }
   } else {
