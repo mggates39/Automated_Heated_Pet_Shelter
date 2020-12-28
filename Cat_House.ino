@@ -56,21 +56,18 @@ boolean occupied = false;
 boolean heat_on = false;
 boolean cold_out = false;
 boolean cold_in = false;
+boolean scale_found = false;
 
 boolean run_state_machine = true;
 
 void setup() {
   Serial.begin(115200);
   while (!Serial); //waits for serial terminal to be open, necessary in newer arduino boards.
-  Serial.println("Cat Palace Heater");
+  Serial.println(F("Cat Palace Heater"));
 
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(RELAY_PIN, OUTPUT);
   digitalWrite(RELAY_PIN, LOW);
-
-  scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
-  scale.set_scale(2280.f);
-  scale.tare();
 
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3C for 128x32
@@ -78,26 +75,46 @@ void setup() {
     for(;;); // Don't proceed, loop forever
   }
 
+  scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
+  if (scale.is_ready()) {
+    scale_found = true;
+    scale.set_scale(2280.f);
+    scale.tare();
+  } else {
+    Serial.println(F("HX711 did not respond"));
+    occupied = true;
+  }
+
   // Show initial display buffer contents on the screen --
   // the library initializes this with an Adafruit splash screen.
   display.display();
   delay(2000); // Pause for 2 seconds
 
-  // Clear the buffer
+  // Clear the buffer and display banner page
   display.clearDisplay();
-  display.setTextSize(1);      // Normal 1:1 pixel scale
+  display.setTextSize(2);      // Normal 1:1 pixel scale
   display.setTextColor(SSD1306_WHITE); // Draw white text
   display.setCursor(0, 0);     // Start at top-left corner
   display.cp437(true);         // Use full 256 char 'Code Page 437' font
+  display.println(F("Cat Palace\n  Heater"));
+  display.display();
+
+  // Set up for normal display
+  display.clearDisplay();
+  display.setCursor(0, 0);     // Start at top-left corner
+  display.setTextSize(1);      // Normal 1:1 pixel scale
 
   if (!inside_sensor.begin(0x18)) {
     Serial.println("Couldn't find inside MCP9808!");
     while (1);
   }
+  
   if (!outside_sensor.begin(0x19)) {
     Serial.println("Couldn't find outside MCP9808!");
     while (1);
   }
+
+  Serial.println("Done Checking");
     
   inside_sensor.setResolution(0); // sets the resolution mode of reading, the modes are defined in the table bellow:
   outside_sensor.setResolution(0); // sets the resolution mode of reading, the modes are defined in the table bellow:
@@ -108,7 +125,9 @@ void setup() {
   occupancy_timer.start();
   
   turn_system_off();
+  
   read_load_cell();
+  
   read_temps();
 }
 
@@ -153,25 +172,27 @@ void highlight_status(bool flag, char *tag) {
 }
 
 void read_load_cell() {
-  scale.power_up();
-  float weight = scale.get_units(10);
-  
-  if (weight > 10.0) {
-    if (!occupied) {
-      occupied = true;
-      read_temp_delay = DEFAULT_READ_TEMP_TIMER;
-      read_temp_timer.setDelay(read_temp_delay);
-      read_temp_timer.start();
+  if (scale_found) {
+    scale.power_up();
+    float weight = scale.get_units(10);
+    
+    if (weight > 20.0) {
+      if (!occupied) {
+        occupied = true;
+        read_temp_delay = DEFAULT_READ_TEMP_TIMER;
+        read_temp_timer.setDelay(read_temp_delay);
+        read_temp_timer.start();
+      }
+    } else {
+      if (occupied) {
+        occupied = false;
+        read_temp_delay = 600000;
+        read_temp_timer.setDelay(read_temp_delay);
+        read_temp_timer.start();
+      }
     }
-  } else {
-    if (occupied) {
-      occupied = false;
-      read_temp_delay = 600000;
-      read_temp_timer.setDelay(read_temp_delay);
-      read_temp_timer.start();
-    }
+    scale.power_down();
   }
-  scale.power_down();
 }
 
 void read_temps() {
