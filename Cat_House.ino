@@ -142,7 +142,7 @@ void setup() {
 void turn_system_off() {
   system_on = false;
 
-  read_temp_delay = 60L * 60L * 1000L;
+  read_temp_delay = 60 * 60 * 1000L;
   read_temp_timer.setDelay(read_temp_delay);
   read_temp_timer.start();
 
@@ -154,18 +154,24 @@ void turn_system_off() {
 void turn_system_on() {
   system_on = true;
 
-  read_temp_delay = 10 * 60 * 1000L;
+  read_temp_delay = DEFAULT_READ_TEMP_TIMER;
   read_temp_timer.setDelay(read_temp_delay);
   read_temp_timer.start();
 
   heat_on_timer.stop();
-  active_delay = 5 * 60 * 1000L;
-  heat_on_timer.setDelay(active_delay);
-  
-  recycle_delay = 55 * 60 * 1000L;
-  heat_reset_timer.setDelay(recycle_delay);
-  turn_off_heat();
-  heat_reset_timer.stop();
+  set_unoccupied_heat_cycle();
+  turn_on_heat();
+}
+
+void highlight_status(bool flag, const __FlashStringHelper *tag) {
+  if (flag) {
+    display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
+  } else {
+    display.setTextColor(SSD1306_WHITE);
+  }
+  display.print(tag);
+  display.setTextColor(SSD1306_WHITE);
+  display.print(F(" "));
 }
 
 void highlight_status(bool flag, char *tag) {
@@ -176,7 +182,7 @@ void highlight_status(bool flag, char *tag) {
   }
   display.print(tag);
   display.setTextColor(SSD1306_WHITE);
-  display.print(" ");
+  display.print(F(" "));
 }
 
 void read_load_cell() {
@@ -239,6 +245,22 @@ void turn_off_heat() {
   heat_reset_timer.start();
 }
 
+void set_default_heat_cycle() {
+  active_delay = DEFAULT_HEAT_TIME;
+  heat_on_timer.setDelay(active_delay);
+
+  recycle_delay = DEFAULT_RECYCLE_DELAY;
+  heat_reset_timer.setDelay(recycle_delay);
+}
+
+void set_unoccupied_heat_cycle() {
+  active_delay = 5 * 60 * 1000L;
+  heat_on_timer.setDelay(active_delay);
+  
+  recycle_delay = 25 * 60 * 1000L;
+  heat_reset_timer.setDelay(recycle_delay);
+}
+
 void process_temperature() {
   
   if (inside_temp < 25.0) {
@@ -251,10 +273,7 @@ void process_temperature() {
     }
   } else {
     if (cold_in) {
-      active_delay = DEFAULT_HEAT_TIME;
-      heat_on_timer.setDelay(active_delay);
-      recycle_delay = DEFAULT_RECYCLE_DELAY;
-      heat_reset_timer.setDelay(recycle_delay);
+      set_default_heat_cycle();
       cold_in = false;
       cold_out = false;
     }
@@ -270,44 +289,36 @@ void process_temperature() {
     }
   } else {
     if (cold_out) {
-      active_delay = DEFAULT_HEAT_TIME;
-      heat_on_timer.setDelay(active_delay);
-      recycle_delay = DEFAULT_RECYCLE_DELAY;
-      heat_reset_timer.setDelay(recycle_delay);
+      set_default_heat_cycle();
       cold_out = false;
     }
   }
+}
+
+void process_keep_warm() {
   
   if (outside_temp <= 45.0) {
-    if (!heat_on) {
-      active_delay = DEFAULT_HEAT_TIME;
-      heat_on_timer.setDelay(active_delay);
-      recycle_delay = DEFAULT_RECYCLE_DELAY;
-      heat_reset_timer.setDelay(recycle_delay);
-
-      turn_on_heat();
-    }
+    set_default_heat_cycle();
   } else {
-    if (heat_on) {
-      turn_off_heat();
-    }
-    heat_reset_timer.stop();
+    set_unoccupied_heat_cycle();
   }
 
 }
 
 void process_state_machine() {
   if (system_on) {
-    if (outside_temp > 60.0) {
+    if (outside_temp >= 60.0) {
       turn_system_off();
     } else {
       if (occupied) {
         process_temperature();
+      } else {
+        process_keep_warm();
       }
     }
     
   } else {
-    if (outside_temp < 50.0) {
+    if (outside_temp <= 50.0) {
       turn_system_on();
     }
   }
@@ -353,11 +364,11 @@ void loop() {
   display.print(outside_temp, 1); display.println(F(" F."));
   
   display.println("");
-  highlight_status(system_on, "Sys");
-  highlight_status(occupied, "Occ");
-  highlight_status(cold_out, "Out");
-  highlight_status(cold_in, "In");
-  highlight_status(heat_on, "Heat");
+  highlight_status(system_on, F("Sys"));
+  highlight_status(occupied, F("Occ"));
+  highlight_status(cold_out, F("Out"));
+  highlight_status(cold_in, F("In"));
+  highlight_status(heat_on, F("Heat"));
   display.println("");
   display.display();
 }
