@@ -118,11 +118,11 @@ void setup() {
   }
   
   if (!outside_sensor.begin(0x19)) {
-    Serial.println("Couldn't find outside MCP9808!");
+    Serial.println(F("Couldn't find outside MCP9808!"));
     while (1);
   }
 
-  Serial.println("Done Checking");
+  Serial.println(F("Done Checking"));
     
   inside_sensor.setResolution(0); // sets the resolution mode of reading, the modes are defined in the table bellow:
   outside_sensor.setResolution(0); // sets the resolution mode of reading, the modes are defined in the table bellow:
@@ -346,11 +346,11 @@ void loop() {
 
 
   // Print out the temperature
-  display.print("Inside  Temp: "); 
-  display.print(inside_temp, 1); display.println(" F.");
+  display.print(F("Inside  Temp: ")); 
+  display.print(inside_temp, 1); display.println(F(" F."));
   
-  display.print("Outside Temp: "); 
-  display.print(outside_temp, 1); display.println(" F.");
+  display.print(F("Outside Temp: ")); 
+  display.print(outside_temp, 1); display.println(F(" F."));
   
   display.println("");
   highlight_status(system_on, "Sys");
