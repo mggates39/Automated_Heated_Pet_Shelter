@@ -1,11 +1,19 @@
 
 /**************************************************************************/
 /*!
-This is a demo for the Adafruit MCP9808 breakout
+This is based on a demo for the Adafruit MCP9808 breakout
 ----> http://www.adafruit.com/products/1782
 Adafruit invests time and resources providing this open source code,
 please support Adafruit and open-source hardware by purchasing
 products from Adafruit!
+
+This controls a heat source for an outside pet house.
+It uses a load sensor to determine if the house is occupied.
+It also has two temperature sensors.  One inside the house and the
+other outside.  
+
+These drive the heat source to be on or off to help maintain a comfortable
+temperature inside the house.
 */
 /**************************************************************************/
 
