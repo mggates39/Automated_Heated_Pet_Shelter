@@ -65,6 +65,8 @@ boolean heat_on = false;
 boolean cold_out = false;
 boolean cold_in = false;
 boolean scale_found = false;
+boolean indoor_missing = false;
+boolean outdoor_missing = false;
 
 boolean run_state_machine = true;
 
@@ -83,20 +85,10 @@ void setup() {
     for(;;); // Don't proceed, loop forever
   }
 
-  scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
-  if (scale.is_ready()) {
-    scale_found = true;
-    scale.set_scale(2280.f);
-    scale.tare();
-  } else {
-    Serial.println(F("HX711 did not respond"));
-    occupied = true;
-  }
-
   // Show initial display buffer contents on the screen --
   // the library initializes this with an Adafruit splash screen.
   display.display();
-  delay(2000); // Pause for 2 seconds
+  delay(1000); // Pause for 1 second
 
   // Clear the buffer and display banner page
   display.clearDisplay();
@@ -112,17 +104,29 @@ void setup() {
   display.setCursor(0, 0);     // Start at top-left corner
   display.setTextSize(1);      // Normal 1:1 pixel scale
 
+  scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
+  if (scale.is_ready()) {
+    scale_found = true;
+    scale.set_scale(2280.f);
+    scale.tare();
+  } else {
+    Serial.println(F("HX711 did not respond"));
+    occupied = true;
+  }
+
   if (!inside_sensor.begin(0x18)) {
     Serial.println("Couldn't find inside MCP9808!");
-    while (1);
+    indoor_missing = true;
   }
   
   if (!outside_sensor.begin(0x19)) {
     Serial.println(F("Couldn't find outside MCP9808!"));
-    while (1);
+    outdoor_missing = true;
   }
 
   Serial.println(F("Done Checking"));
+
+  while(indoor_missing || outdoor_missing);
     
   inside_sensor.setResolution(0); // sets the resolution mode of reading, the modes are defined in the table bellow:
   outside_sensor.setResolution(0); // sets the resolution mode of reading, the modes are defined in the table bellow:
