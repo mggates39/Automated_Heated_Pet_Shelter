@@ -14,6 +14,8 @@ other outside.
 
 These drive the heat source to be on or off to help maintain a comfortable
 temperature inside the house.
+
+Uses the MyDelay Arduino library at https://github.com/mggates39/MyDelay
 */
 /**************************************************************************/
 
@@ -22,7 +24,8 @@ temperature inside the house.
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <HX711.h>
-#include "MyDelay.h"
+#include <MyDelay.h>
+
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels
@@ -46,16 +49,22 @@ Adafruit_MCP9808 outside_sensor = Adafruit_MCP9808();
 
 HX711 scale = HX711();
 
+// Pre-define call back functions for timers
+void read_load_cell();
+void read_temps();
+void sleep_probes();
+void turn_off_heat();
+void turn_on_heat();
 
 long read_temp_delay = DEFAULT_READ_TEMP_TIMER;
 long recycle_delay = DEFAULT_RECYCLE_DELAY;
 long active_delay = DEFAULT_HEAT_TIME;
 
-myDelay occupancy_timer = myDelay(300000);          // Check occupancy every 5 minutes 300000
-myDelay sleep_temp_timer = myDelay(2000);           // Leave sensors running for 2 seconds 2000
-myDelay read_temp_timer = myDelay(read_temp_delay); // Check Temperatures every 1 minute 60000
-myDelay heat_on_timer = myDelay(active_delay);      // Keep heat on for 45 minutes 45*60*1000 = 2700000
-myDelay heat_reset_timer = myDelay(recycle_delay);  // Cycle heat off for 15 minutes 15*60*1000 = 900000
+MyDelay occupancy_timer = MyDelay(300000, read_load_cell);          // Check occupancy every 5 minutes 300000ms
+MyDelay sleep_temp_timer = MyDelay(2000, sleep_probes, 1);          // Leave sensors running for 2 seconds 2000ms, only fire once
+MyDelay read_temp_timer = MyDelay(read_temp_delay, read_temps);     // Check Temperatures every 1 minute 60000ms
+MyDelay heat_on_timer = MyDelay(active_delay, turn_off_heat, 1);    // Turn heat off after 45 minutes 45*60*1000 = 2700000ms, only fire once
+MyDelay heat_reset_timer = MyDelay(recycle_delay, turn_on_heat, 1); // Turn heat oon after 15 minutes 15*60*1000 = 900000ms, only fire once
 
 float inside_temp, outside_temp;
 
@@ -131,9 +140,6 @@ void setup() {
   inside_sensor.setResolution(0); // sets the resolution mode of reading, the modes are defined in the table bellow:
   outside_sensor.setResolution(0); // sets the resolution mode of reading, the modes are defined in the table bellow:
 
-  sleep_temp_timer.setRepeat(1);
-  heat_on_timer.setRepeat(1);
-  heat_reset_timer.setRepeat(1);
   occupancy_timer.start();
   
   turn_system_off();
@@ -330,24 +336,15 @@ void process_state_machine() {
 
 void loop() {
 
-  if (occupancy_timer.update()) {
-    read_load_cell();
-  }
+  occupancy_timer.update();
 
-  if (sleep_temp_timer.update()) {
-    sleep_probes();
-  }
+  sleep_temp_timer.update();
 
-  if (heat_on_timer.update()) {
-    turn_off_heat();
-  }
+  heat_on_timer.update();
   
-  if (heat_reset_timer.update()) {
-    turn_on_heat();
-  }
+  heat_reset_timer.update();
 
   if (read_temp_timer.update()) {
-    read_temps();
     run_state_machine = true;
   }
 
