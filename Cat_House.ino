@@ -81,6 +81,7 @@ boolean cold_in = false;
 boolean scale_found = false;
 boolean indoor_missing = false;
 boolean outdoor_missing = false;
+boolean reading_temperatures = false;
 
 boolean run_state_machine = true;
 
@@ -256,6 +257,7 @@ void read_load_cell() {
 
 void read_temps() {
   digitalWrite(LED_BUILTIN, HIGH);
+  reading_temperatures = true;
 //  Serial.println(F("Read Temp"));
 
   inside_sensor.wake();   // wake up, ready to read!
@@ -273,6 +275,7 @@ void read_temps() {
 
 void sleep_probes() {
   digitalWrite(LED_BUILTIN, LOW);
+  reading_temperatures = false;
   
   inside_sensor.shutdown_wake(1); // shutdown MSP9808 - power consumption ~0.1 mikro Ampere, stops temperature sampling
   outside_sensor.shutdown_wake(1); // shutdown MSP9808 - power consumption ~0.1 mikro Ampere, stops temperature sampling  
@@ -406,6 +409,7 @@ void loop() {
   highlight_status(cold_out, F("Out"));
   highlight_status(cold_in, F("In"));
   highlight_status(heat_on, F("Heat"));
+  highlight_status(reading_temperatures, F(" "));
   display.println("");
   display.display();
 }
