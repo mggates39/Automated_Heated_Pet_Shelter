@@ -202,7 +202,12 @@ void done_startup_mode() {
   startup_mode = false;
 
   if (!system_on) {
-      turn_system_off();
+    turn_system_off();
+    if (!occupied) {
+      set_read_delay(DEFAULT_READ_TEMP_TIMER);
+    } else {
+      set_read_delay(10 * 60 * 1000L); // 10 minutes
+    }
   }
 }
 
@@ -304,7 +309,7 @@ void set_unoccupied_heat_cycle() {
 
 void process_temperature() {
   
-  if (inside_temp < 25.0) {
+  if (inside_temp < 30.0) {
     if (!cold_in) {
       cold_in = true;
       active_delay = 55 * 60 * 1000L;
@@ -338,7 +343,7 @@ void process_temperature() {
 
 void process_keep_warm() {
   
-  if (outside_temp <= 45.0) {
+  if (outside_temp <= 30.0) {
     set_default_heat_cycle();
   } else {
     set_unoccupied_heat_cycle();
@@ -357,9 +362,8 @@ void process_state_machine() {
         process_keep_warm();
       }
     }
-    
   } else {
-    if (outside_temp <= 50.0) {
+    if (outside_temp <= 45.0) {
       turn_system_on();
     }
   }
