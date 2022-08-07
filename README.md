@@ -5,3 +5,5 @@ It uses an Uno, a couple of tempearture sensors, a load cell and amplifier, and 
 
 It uses the MyDelay Arduino library found [here](https://github.com/mggates39/MyDelay) on GitHub
 
+Added a KiCad design for an Arduino Uno shield to interface to the sensors and relay.
+
